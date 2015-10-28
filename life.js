@@ -32,8 +32,8 @@
 var s = {
     DEAD: 0,
     ALIVE: 1,
-    rows: 30,
-    columns: 30,
+    rows: 40,
+    columns: 40,
     pad: 1,
     rect_width: 10,
     rect_height: 10,
@@ -82,8 +82,8 @@ var pattern = {
         [0, 1, 0, 0, 0, 0, 0],
         [0, 0, 0, 1, 0, 0, 0],
         [1, 1, 0, 0, 1, 1, 1]
-    ]
-    /*gun: [
+    ],
+    gun: [
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
@@ -93,7 +93,7 @@ var pattern = {
         [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-    ],*/
+    ]
 };
 
 // Grid - draw canvas and init context
@@ -257,7 +257,7 @@ var grid, life, oldCell, interval;
 var init = function () {
 	grid = new Grid(s, Cell.dead);
     // beacon, rpentomino, glider, pentadecathlon, acorn, gun
-    //grid.import(pattern.gun);
+    grid.import(pattern.gun);
     life = new Life(grid);
     for(var key in pattern) {
     	$('#pattern').append($("<option></option>").attr("value", key).text(key));
