@@ -1,0 +1,14 @@
+body {
+    background: lightblue;
+}
+
+canvas {
+    background: #000;
+    cursor: pointer;
+    margin: 0 auto;
+}
+
+#gen, #canvas, #buttons {
+    margin-bottom: 5px;
+    text-align: center;
+}
