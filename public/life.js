@@ -82,18 +82,18 @@ Grid.prototype = {
         for (var y = 0; y < p.length; y+=1) {
             var row = p[y];
             for (var x = 0; x < row.length; x+=1) {
-                this.setCellValue(startX + x, startY + y, p[y][x]);
+                this.setCellState(startX + x, startY + y, p[y][x]);
             }
         }
     },
     getCellByXY: function (x, y) {
         return this.matrix[(s.rows + y) % s.rows][(s.columns + x) % s.columns];
     },
-    getCellValue: function (x, y) {
+    getCellState: function (x, y) {
         return this.getCellByXY(x, y).getState();
     },
-    setCellValue: function (x, y, value) {
-        this.getCellByXY(x, y).setState(value);
+    setCellState: function (x, y, state) {
+        this.getCellByXY(x, y).setState(state);
         return this;
     },
     getCell: function (event, y) {
@@ -128,12 +128,15 @@ var Life = function (grid) {
 };
 
 Life.prototype = {
-    tick: function () {
-        var nextCell, n, self = this;
+    tick: function() {
+        this.nextGen();
         this.calcStats();
+    },
+    nextGen: function () {
+        var n, self = this;
         this.grid.matrix = this.grid.matrix.map(function (row, y) {
             return row.map(function (cell, x) {
-                nextCell = new Cell(x, y, self.grid.context);
+                var nextCell = new Cell(x, y, self.grid.context);
                 n = self.countNeighbours(x, y);
 
                 if (n == 3) {
@@ -153,18 +156,24 @@ Life.prototype = {
         var n = 0;
         for (var i = -1; i <= 1; i+=1) {
             for (var j = -1; j <= 1; j+=1) {
-                n += this.grid.getCellValue(x + i, y + j);
+                n += this.grid.getCellState(x + i, y + j);
             }
         }
 
         return n;
     },
     calcStats: function() {
+        var self = this;
     	this.stats.generation += 1;
+        this.stats.population = 0;
+        this.grid.matrix.map(function (row) {
+            row.map(function (cell) {
+                self.stats.population += cell.getState();
+            });
+        });
         if (this.stats.population > this.stats.maxPopulation) {
             this.stats.maxPopulation = this.stats.population;
         }
-        this.stats.population = 0;
     }
 };
 
@@ -197,9 +206,9 @@ Cell.prototype = {
     getState: function () {
         return this.state;
     },
-    setState: function (value) {
-        this.state = value;
-        this.fill(value);
+    setState: function (state) {
+        this.state = state;
+        this.fill(state);
 
         return this;
     },
