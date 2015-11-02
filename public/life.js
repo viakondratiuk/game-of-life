@@ -143,6 +143,8 @@ Grid.prototype = {
 
         var x = Math.floor((event.pageX - this.canvas.offsetLeft) / s.cell_width);
         var y = Math.floor((event.pageY - this.canvas.offsetTop) / s.cell_height);
+        x = Math.max(0, Math.min(s.columns - 1, x));
+        y = Math.max(0, Math.min(s.rows - 1, y));
 
         return this.getCellByXY(x, y);
     }
