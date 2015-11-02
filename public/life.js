@@ -133,11 +133,11 @@ Life.prototype = {
         this.calcStats();
     },
     nextGen: function () {
-        var n, self = this;
+        var self = this;
         this.grid.matrix = this.grid.matrix.map(function (row, y) {
             return row.map(function (cell, x) {
-                var nextCell = new Cell(x, y, self.grid.context);
-                n = self.countNeighbours(x, y);
+                var nextCell = new Cell(x, y, self.grid.context),
+                    n = self.countNeighbours(x, y);
 
                 if (n == 3) {
                     nextCell.setState(s.ALIVE);
@@ -146,7 +146,6 @@ Life.prototype = {
                 } else {
                     nextCell.setState(s.DEAD);
                 }
-                self.stats.population += nextCell.getState();
 
                 return nextCell;
             });
@@ -242,27 +241,38 @@ var refreshStats = function (block, clear) {
     }
 };
 
-
-
 $(document).ready(function() {
     init();
 
     // Canvas events
-    $('canvas')
-        .on('click', function(event) {
-            grid.getCell(event).toggleState();
-        })
-        .on('mousemove mouseout', function () {
-            oldCell && oldCell.highlight(false);
-        })
-        .on('mousemove', function (event) {
-            var cell = grid.getCell(event);
+    var tg = function(event) {
+        grid.getCell(event).toggleState();
+    };
 
-            if (cell.getState() == s.DEAD) {
-                cell && cell.highlight(true);
-                oldCell = cell;
-            }
-        });
+    var unh = function() {
+        oldCell && oldCell.highlight(false);
+    };
+
+    var h = function(event) {
+        var cell = grid.getCell(event);
+
+        if (cell.getState() == s.DEAD) {
+            cell && cell.highlight(true);
+            oldCell = cell;
+        }
+    };
+
+    /*
+    $('canvas')
+        .on('click', event, grid.toggleCellState)
+        .on('mousemove mouseout', event, grid.toggleCellHighlight);
+    */
+
+    $('canvas')
+        .on('click', event, tg)
+        .on('mousemove mouseout', unh)
+        .on('mousemove', event, h);
+
 
     //Controls events
     $('#clear').click(function () {
