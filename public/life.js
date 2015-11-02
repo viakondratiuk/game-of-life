@@ -56,46 +56,6 @@ var s = {
     }
 };
 
-var pattern = {
-	glider: [
-    	[0, 1, 0],
-        [0, 0, 1],
-        [1, 1, 1]
-    ],
-    pentadecathlon: [
-    	[0, 0, 1, 0, 0, 0, 0, 1, 0, 0],
-        [1, 1, 0, 1, 1, 1, 1, 0, 1, 1],
-        [0, 0, 1, 0, 0, 0, 0, 1, 0, 0]
-    ],
-    beacon: [
-        [1, 1, 0, 0],
-        [1, 1, 0, 0],
-        [0, 0, 1, 1],
-        [0, 0, 1, 1]
-    ],
-    rpentomino: [
-    	[0, 1, 1],
-    	[1, 1, 0],
-    	[0, 1, 0]
-    ],
-    acorn: [
-        [0, 1, 0, 0, 0, 0, 0],
-        [0, 0, 0, 1, 0, 0, 0],
-        [1, 1, 0, 0, 1, 1, 1]
-    ],
-    gun: [
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-        [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,1,1],
-        [1,1,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
-    ]
-};
-
 // Grid - draw canvas and init context
 var Grid = function (s, init) {
     this.canvas = $('<canvas/>').attr({
@@ -105,9 +65,9 @@ var Grid = function (s, init) {
     this.context = this.canvas.getContext('2d');
 
     this.matrix = new Array(s.rows);
-    for (var y = 0; y < s.rows; y += 1) {
+    for (var y = 0; y < s.rows; y+=1) {
         this.matrix[y] = new Array(s.columns);
-        for (var x = 0; x < s.columns; x += 1) {
+        for (var x = 0; x < s.columns; x+=1) {
             var cell = new Cell(x, y, this.context);
             this.matrix[y][x] = cell.setState(init());
         }
@@ -147,6 +107,13 @@ Grid.prototype = {
         y = Math.max(0, Math.min(s.rows - 1, y));
 
         return this.getCellByXY(x, y);
+    },
+    dayNight: function() {
+        this.matrix.map(function (row) {
+            return row.map(function (cell) {
+                cell.toggleState();
+            });
+        });
     }
 };
 
@@ -184,8 +151,8 @@ Life.prototype = {
     },
     countNeighbours: function (x, y) {
         var n = 0;
-        for (var i = -1; i <= 1; i++) {
-            for (var j = -1; j <= 1; j++) {
+        for (var i = -1; i <= 1; i+=1) {
+            for (var j = -1; j <= 1; j+=1) {
                 n += this.grid.getCellValue(x + i, y + j);
             }
         }
@@ -237,7 +204,7 @@ Cell.prototype = {
         return this;
     },
     toggleState: function () {
-        (this.getState() == s.ALIVE) ? this.setState(s.DEAD) : this.setState(s.ALIVE);
+        this.setState(1 - this.getState());
     }
 };
 
@@ -247,7 +214,7 @@ var grid, life, oldCell, interval;
 var init = function () {
 	grid = new Grid(s, Cell.dead);
     // beacon, rpentomino, glider, pentadecathlon, acorn, gun
-    grid.import(pattern.gun);
+    grid.import(pattern.acorn);
     life = new Life(grid);
     for(var key in pattern) {
     	$('#pattern').append(
@@ -289,7 +256,6 @@ $(document).ready(function() {
         });
 
     //Controls events
-
     $('#clear').click(function () {
         refreshStats(life, true);
         clearInterval(interval);
@@ -321,5 +287,9 @@ $(document).ready(function() {
 
     $('#add').on('click', function () {
         $('#life-1').clone('').appendTo('#template');
+    });
+
+    $('#day-night').on('click', function () {
+        grid.dayNight();
     });
 });
