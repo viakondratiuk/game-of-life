@@ -97,14 +97,15 @@ Grid.prototype = {
         return this;
     },
     getCell: function (event, y) {
+        var x;
         if (typeof y != 'undefined') {
-        	return this.getCellByXY(event, y);
+        	x = event;
+        } else {
+            x = Math.floor((event.pageX - this.canvas.offsetLeft) / s.cell_width);
+            x = Math.max(0, Math.min(s.columns - 1, x));
+            y = Math.floor((event.pageY - this.canvas.offsetTop) / s.cell_height);
+            y = Math.max(0, Math.min(s.rows - 1, y));
         }
-
-        var x = Math.floor((event.pageX - this.canvas.offsetLeft) / s.cell_width);
-        var y = Math.floor((event.pageY - this.canvas.offsetTop) / s.cell_height);
-        x = Math.max(0, Math.min(s.columns - 1, x));
-        y = Math.max(0, Math.min(s.rows - 1, y));
 
         return this.getCellByXY(x, y);
     },
@@ -114,6 +115,13 @@ Grid.prototype = {
                 cell.toggleState();
             });
         });
+    },
+    toggleCellState: function(event) {
+        var cell = this.getCell(event);
+        cell.toggleState();
+    },
+    toggleCellHighlight: function() {
+
     }
 };
 
@@ -136,18 +144,11 @@ Life.prototype = {
         var self = this;
         this.grid.matrix = this.grid.matrix.map(function (row, y) {
             return row.map(function (cell, x) {
-                var nextCell = new Cell(x, y, self.grid.context),
-                    n = self.countNeighbours(x, y);
+                var n = self.countNeighbours(x, y),
+                    state = (n == 4) ? cell.getState() : (n == 3) ? s.ALIVE : s.DEAD,
+                    nextCell = new Cell(x, y, self.grid.context);
 
-                if (n == 3) {
-                    nextCell.setState(s.ALIVE);
-                } else if (n == 4) {
-                    nextCell.setState(cell.getState());
-                } else {
-                    nextCell.setState(s.DEAD);
-                }
-
-                return nextCell;
+                return nextCell.setState(state);
             });
         });
     },
