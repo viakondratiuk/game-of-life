@@ -1,14 +1,10 @@
 /**
- * Created by vk on 28.10.15.
+ * Created by viakondratiuk on 28.10.15.
  */
 
 /***
-* Rename gen and next gen on ticks
-* Remove unnecessary wrapper methods
-* Process bounds better
 * Better high, unhigh, toogle
 * oldCell?
-* Add possibility to chose pattern
 * Better init and pattern read
 * DayNight
 
@@ -21,17 +17,21 @@
 * HashLife
 
 + Copy pattern on grid? How not to use those duplicated for loops?
-+ Asimmetrical grid not working
++ Asymmetrical grid not working
 + Toroidal matrix, Wrap Life
 + Align patterns to center
 + Better population and maxPopulation
-+ Toroidal into cell value
++ Toroidal into cell state
++ Rename gen and next gen on ticks
++ Process bounds better
++ Add possibility to chose pattern
 ***/
 
 // Global Settings
 var s = {
     DEAD: 0,
     ALIVE: 1,
+    HIGHLIGHT: 2,
     rows: 40,
     columns: 40,
     pad: 1,
@@ -92,7 +92,7 @@ var pattern = {
         [1,1,0,0,0,0,0,0,0,0,1,0,0,0,1,0,1,1,0,0,0,0,1,0,1,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,1,0,0,0,0,0,1,0,0,0,0,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0],
         [0,0,0,0,0,0,0,0,0,0,0,1,0,0,0,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
-        [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+        [0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0]
     ]
 };
 
@@ -103,20 +103,18 @@ var Grid = function (s, init) {
         height: s.grid_height
     }).appendTo('#canvas').get(0);
     this.context = this.canvas.getContext('2d');
-    this.create(s, init);
+
+    this.matrix = new Array(s.rows);
+    for (var y = 0; y < s.rows; y += 1) {
+        this.matrix[y] = new Array(s.columns);
+        for (var x = 0; x < s.columns; x += 1) {
+            var cell = new Cell(x, y, this.context);
+            this.matrix[y][x] = cell.setState(init());
+        }
+    }
 };
 
 Grid.prototype = {
-    create: function (s, init) {
-        this.matrix = new Array(s.rows);
-        for (var y = 0; y < s.rows; y += 1) {
-            this.matrix[y] = new Array(s.columns);
-            for (var x = 0; x < s.columns; x += 1) {
-                var cell = new Cell(x, y, this.context);
-                this.matrix[y][x] = cell.setValue(init());
-            }
-        }
-    },
 	import: function (p) {
     	var startX = Math.floor(s.columns / 2) - Math.floor(p[0].length / 2),
     		startY = Math.floor(s.rows / 2) - Math.floor(p.length / 2);
@@ -129,13 +127,13 @@ Grid.prototype = {
         }
     },
     getCellByXY: function (x, y) {
-        return this.matrix[y][x];
+        return this.matrix[(s.rows + y) % s.rows][(s.columns + x) % s.columns];
     },
     getCellValue: function (x, y) {
-        return this.matrix[(s.rows + y) % s.rows][(s.columns + x) % s.columns].getValue();
+        return this.getCellByXY(x, y).getState();
     },
     setCellValue: function (x, y, value) {
-        this.matrix[y][x].setValue(value);
+        this.getCellByXY(x, y).setState(value);
         return this;
     },
     getCell: function (event, y) {
@@ -145,12 +143,6 @@ Grid.prototype = {
 
         var x = Math.floor((event.pageX - this.canvas.offsetLeft) / s.cell_width);
         var y = Math.floor((event.pageY - this.canvas.offsetTop) / s.cell_height);
-
-        // TODO: find better solution
-        if (x < 0) x = 0;
-        if (x > s.columns - 1) x = s.columns - 1;
-        if (y < 0) y = 0;
-        if (y > s.rows - 1) y = s.rows - 1;
 
         return this.getCellByXY(x, y);
     }
@@ -162,32 +154,31 @@ var Life = function (grid) {
     this.stats = {
         generation: 0,
         population: 0,
-    	maxPopulation: 0,
+    	maxPopulation: 0
     };
 };
 
 Life.prototype = {
-    nextGen: function () {
+    tick: function () {
         var nextCell, n, self = this;
         this.calcStats();
-        var nextGen = this.grid.matrix.map(function (row, y) {
+        this.grid.matrix = this.grid.matrix.map(function (row, y) {
             return row.map(function (cell, x) {
                 nextCell = new Cell(x, y, self.grid.context);
                 n = self.countNeighbours(x, y);
 
                 if (n == 3) {
-                    nextCell.setValue(s.ALIVE);
+                    nextCell.setState(s.ALIVE);
                 } else if (n == 4) {
-                    nextCell.setValue(cell.getValue());
+                    nextCell.setState(cell.getState());
                 } else {
-                    nextCell.setValue(s.DEAD);
+                    nextCell.setState(s.DEAD);
                 }
-                self.stats.population += nextCell.getValue();
+                self.stats.population += nextCell.getState();
 
                 return nextCell;
             });
         });
-        this.grid.matrix = nextGen;
     },
     countNeighbours: function (x, y) {
         var n = 0;
@@ -231,23 +222,20 @@ Cell.prototype = {
         this.context.fillRect(this.rectX, this.rectY, s.rect_width, s.rect_height);
         return this;
     },
-    highlight: function () {
-        this.fill(2);
+    highlight: function (flag) {
+        (flag) ? this.fill(s.HIGHLIGHT) :  this.fill(this.getState());
     },
-    unhighlight: function () {
-        this.fill(this.getValue());
+    getState: function () {
+        return this.state;
     },
-    getValue: function () {
-        return this.value;
-    },
-    setValue: function (value) {
-        this.value = value;
+    setState: function (value) {
+        this.state = value;
         this.fill(value);
 
         return this;
     },
-    toggle: function () {
-        (this.getValue() == s.ALIVE) ? this.setValue(s.DEAD) : this.setValue(s.ALIVE);
+    toggleState: function () {
+        (this.getState() == s.ALIVE) ? this.setState(s.DEAD) : this.setState(s.ALIVE);
     }
 };
 
@@ -260,7 +248,9 @@ var init = function () {
     grid.import(pattern.gun);
     life = new Life(grid);
     for(var key in pattern) {
-    	$('#pattern').append($("<option></option>").attr("value", key).text(key));
+    	$('#pattern').append(
+            $('<option></option>').attr('state', key).text(key)
+        );
     }
 };
 
@@ -274,29 +264,29 @@ var refreshStats = function (block, clear) {
     }
 };
 
+
+
 $(document).ready(function() {
     init();
 
     // Canvas events
-    $('canvas').click(function (event) {
-        grid.getCell(event).toggle();
-        oldCell = null;
-    });
+    $('canvas')
+        .on('click', function(event) {
+            grid.getCell(event).toggleState();
+        })
+        .on('mousemove mouseout', function () {
+            oldCell && oldCell.highlight(false);
+        })
+        .on('mousemove', function (event) {
+            var cell = grid.getCell(event);
 
-    $('canvas').mousemove(function (event) {
-        var cell = grid.getCell(event);
-        oldCell && oldCell.unhighlight();
+            if (cell.getState() == s.DEAD) {
+                cell && cell.highlight(true);
+                oldCell = cell;
+            }
+        });
 
-        if (cell.getValue() == s.DEAD) {
-            cell && cell.highlight();
-            oldCell = cell;
-        }
-    });
-
-    $('canvas').mouseout(function () {
-        oldCell.unhighlight();
-        oldCell = null;
-    });
+    //Controls events
 
     $('#clear').click(function () {
         refreshStats(life, true);
@@ -305,13 +295,13 @@ $(document).ready(function() {
     });
 
     $('#next').click(function () {
-        life.nextGen();
+        life.tick();
         refreshStats(life);
     });
 
     $('#run').click(function () {
         interval = setInterval(function () {
-            life.nextGen();
+            life.tick();
             refreshStats(life);
         }, 100);
     });
@@ -321,10 +311,13 @@ $(document).ready(function() {
     });
 
     $('#pattern').change(function () {
-        grid.create(s, Cell.dead);
         grid.import(pattern[$(this).val()]);
         life = new Life(grid);
         clearInterval(interval);
         refreshStats(life, true);
+    });
+
+    $('#add').on('click', function () {
+        $('#life-1').clone('').appendTo('#template');
     });
 });
