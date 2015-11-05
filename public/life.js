@@ -63,6 +63,7 @@ var Grid = function (s, init) {
         height: s.grid_height
     }).appendTo('#canvas').get(0);
     this.context = this.canvas.getContext('2d');
+    this.prevCell = null;
 
     this.matrix = new Array(s.rows);
     for (var y = 0; y < s.rows; y+=1) {
@@ -116,12 +117,19 @@ Grid.prototype = {
             });
         });
     },
-    toggleCellState: function(event) {
-        var cell = this.getCell(event);
-        cell.toggleState();
+    toggleCellState: function (event) {
+        this.getCell(event).toggleState();
     },
-    toggleCellHighlight: function() {
+    mouseenterCell: function() {
+        var cell = this.getCell(event);
 
+        if (cell.getState() == s.DEAD) {
+            cell.highlight(true);
+            this.prevCell = cell;
+        }
+    },
+    mouseleaveCell: function () {
+        this.prevCell && this.prevCell.highlight(false);
     }
 };
 
@@ -246,34 +254,10 @@ $(document).ready(function() {
     init();
 
     // Canvas events
-    var tg = function(event) {
-        grid.getCell(event).toggleState();
-    };
-
-    var unh = function() {
-        oldCell && oldCell.highlight(false);
-    };
-
-    var h = function(event) {
-        var cell = grid.getCell(event);
-
-        if (cell.getState() == s.DEAD) {
-            cell && cell.highlight(true);
-            oldCell = cell;
-        }
-    };
-
-    /*
     $('canvas')
-        .on('click', event, grid.toggleCellState)
-        .on('mousemove mouseout', event, grid.toggleCellHighlight);
-    */
-
-    $('canvas')
-        .on('click', event, tg)
-        .on('mousemove mouseout', unh)
-        .on('mousemove', event, h);
-
+        .on('click', event, Grid.prototype.toggleCellState.bind(grid))
+        .on('mousemove mouseout', event, Grid.prototype.mouseleaveCell.bind(grid))
+        .on('mousemove', event, Grid.prototype.mouseenterCell.bind(grid));
 
     //Controls events
     $('#clear').click(function () {
