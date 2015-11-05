@@ -24,7 +24,7 @@
 ***/
 
 // Global Settings
-var lifeId = 0;
+var lifeId = 0, wrap = [];
 var s = {
     DEAD: 0,
     ALIVE: 1,
@@ -231,17 +231,15 @@ Cell.prototype = {
 };
 
 // Init
-var wrap = [], grid, life, interval;
-
 var init = function () {
     var cloned = $('#template').clone();
     cloned.removeClass('hidden').data('id', lifeId).attr('id', 'life-' + (lifeId));
     cloned.appendTo('#workspace');
 
-	grid = new Grid(s, Cell.dead, lifeId);
+	var grid = new Grid(s, Cell.dead, lifeId);
     // beacon, rpentomino, glider, pentadecathlon, acorn, gun
     grid.import(pattern.acorn);
-    life = new Life(grid);
+    var life = new Life(grid);
     for(var key in pattern) {
     	$('#life-' + (lifeId) + ' .pattern').append(
             $('<option></option>').attr('state', key).text(key)
