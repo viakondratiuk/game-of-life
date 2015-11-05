@@ -9,32 +9,33 @@
     <title>Game of Life</title>
 </head>
 <body>
-    <div id="global-controls">
-        <button id="add" title="Add">Add</button>
-        <button id="day-night" title="Day Night">Day Night</button>
-        <button id="clear" title="Clear">Clear</button>
-        <button id="next" title="Next Generation">Step</button>
-        <button id="pause" title="Pause">Pause</button>
-        <button id="run" title="Run">Run</button>
+    <div id="g-controls">
+        <button id="g-add" title="Add">Add</button>
+        <button id="g-day-night" title="Day Night">Day Night</button>
+        <button id="g-clear" title="Clear">Clear</button>
+        <button id="g-next" title="Next Generation">Step</button>
+        <button id="g-run" title="Run">Run</button>
+        <button id="g-pause" title="Pause">Pause</button>
     </div>
     <hr />
-    <div id="template">
-        <div id="life-1">
-            <div id="gen">
-                <span>Generation: </span><span id="generation">0</span>&nbsp;&nbsp;
-                <span>Population: </span><span id="population">0</span>&nbsp;&nbsp;
-                <span>Max: </span><span id="maxPopulation">0</span>&nbsp;&nbsp;
+    <div id="workspace">
+        <div id="template" class="hidden life">
+            <div class="gen">
+                <span>Generation: </span><span class="generation">0</span>&nbsp;&nbsp;
+                <span>Population: </span><span class="population">0</span>&nbsp;&nbsp;
+                <span>Max: </span><span class="maxPopulation">0</span>&nbsp;&nbsp;
                 <span>Pattern: </span>
-                <select id="pattern" name="pattern">
+                <select class="pattern" name="pattern">
                     <option value=""></option>
                 </select>
             </div>
-            <div id="canvas"></div>
-            <div id="buttons">
-                <button id="clear" title="Clear">Clear</button>
-                <button id="next" title="Next Generation">Step</button>
-                <button id="pause" title="Pause">Pause</button>
-                <button id="run" title="Run">Run</button>
+            <div class="canvas"></div>
+            <div class="buttons">
+                <button class="day-night" title="Day Night">Day Night</button>
+                <button class="clear" title="Clear">Clear</button>
+                <button class="next" title="Next Generation">Step</button>
+                <button class="run" title="Run">Run</button>
+                <button class="pause" title="Pause">Pause</button>
             </div>
         </div>
     </div>

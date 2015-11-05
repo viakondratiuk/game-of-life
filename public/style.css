@@ -8,11 +8,16 @@ canvas {
     margin: 0 auto;
 }
 
-#template {
-    /*display: none;*/
-}
-
-#global-controls, #gen, #canvas {
+#g-controls, .gen, .canvas {
     margin-bottom: 5px;
     text-align: center;
+}
+
+.life {
+    float: left;
+    margin-right: 10px;
+}
+
+.hidden {
+    display: none;
 }

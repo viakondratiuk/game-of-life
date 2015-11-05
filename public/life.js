@@ -3,15 +3,9 @@
  */
 
 /***
-* Better high, unhigh, toogle
-* oldCell?
-* Better init and pattern read
-* DayNight
-
-* Better use of global object
-
-* Support several canvas
-* How to organize controls for several canvas?
+* Rid of global settings
+* Several canvases
+* Controls
 
 * Hex grid
 * HashLife
@@ -25,9 +19,12 @@
 + Rename gen and next gen on ticks
 + Process bounds better
 + Add possibility to chose pattern
++ Better high, unhigh, toggle
++ oldCell?
 ***/
 
 // Global Settings
+var lifeId = 0;
 var s = {
     DEAD: 0,
     ALIVE: 1,
@@ -57,11 +54,12 @@ var s = {
 };
 
 // Grid - draw canvas and init context
-var Grid = function (s, init) {
+var Grid = function (s, init, lifeId) {
+    this.lifeId = lifeId;
     this.canvas = $('<canvas/>').attr({
         width: s.grid_width,
         height: s.grid_height
-    }).appendTo('#canvas').get(0);
+    }).appendTo('#life-' + (lifeId) + ' .canvas').get(0);
     this.context = this.canvas.getContext('2d');
     this.prevCell = null;
 
@@ -76,6 +74,16 @@ var Grid = function (s, init) {
 };
 
 Grid.prototype = {
+    clear: function () {
+        this.matrix = new Array(s.rows);
+        for (var y = 0; y < s.rows; y+=1) {
+            this.matrix[y] = new Array(s.columns);
+            for (var x = 0; x < s.columns; x+=1) {
+                var cell = new Cell(x, y, this.context);
+                this.matrix[y][x] = cell.setState(0);
+            }
+        }
+    },
 	import: function (p) {
     	var startX = Math.floor(s.columns / 2) - Math.floor(p[0].length / 2),
     		startY = Math.floor(s.rows / 2) - Math.floor(p.length / 2);
@@ -226,27 +234,38 @@ Cell.prototype = {
 };
 
 // Init
-var grid, life, oldCell, interval;
+var wrap = [], grid, life, interval;
 
 var init = function () {
-	grid = new Grid(s, Cell.dead);
+    var cloned = $('#template').clone();
+    cloned.removeClass('hidden').data('id', lifeId).attr('id', 'life-' + (lifeId));
+    cloned.appendTo('#workspace');
+
+	grid = new Grid(s, Cell.dead, lifeId);
     // beacon, rpentomino, glider, pentadecathlon, acorn, gun
     grid.import(pattern.acorn);
     life = new Life(grid);
     for(var key in pattern) {
-    	$('#pattern').append(
+    	$('#life-' + (lifeId) + ' .pattern').append(
             $('<option></option>').attr('state', key).text(key)
         );
     }
+
+    wrap.push({
+        grid: grid,
+        life: life,
+        interval: null
+    });
+    lifeId+=1;
 };
 
 // Controls events
-var refreshStats = function (block, clear) {
-    for(var key in block.stats) {
+var refreshStats = function (life, clear) {
+    for(var key in life.stats) {
         if (clear) {
-        	block.stats[key] = 0;
+        	life.stats[key] = 0;
         }
-    	$('#' + key).text(block.stats[key]);
+    	$('#life-' + (life.grid.lifeId) + ' .' + key).text(life.stats[key]);
     }
 };
 
@@ -254,46 +273,97 @@ $(document).ready(function() {
     init();
 
     // Canvas events
-    $('canvas')
-        .on('click', event, Grid.prototype.toggleCellState.bind(grid))
-        .on('mousemove mouseout', event, Grid.prototype.mouseleaveCell.bind(grid))
-        .on('mousemove', event, Grid.prototype.mouseenterCell.bind(grid));
+    $('body')
+        .on('click', 'canvas', function (event) {
+            var idx = $(this).parents('.life').data('id');
+            wrap[idx].grid.toggleCellState(event);
+        })
+        .on('mousemove mouseout', 'canvas', function () {
+            var idx = $(this).parents('.life').data('id');
+            wrap[idx].grid.mouseleaveCell(event);
+        })
+        .on('mousemove', 'canvas', function (event) {
+            var idx = $(this).parents('.life').data('id');
+            wrap[idx].grid.mouseenterCell(event);
+        });
 
-    //Controls events
-    $('#clear').click(function () {
-        refreshStats(life, true);
-        clearInterval(interval);
+
+    //Global controls
+    $('#g-add').on('click', function () {
         init();
     });
 
-    $('#next').click(function () {
-        life.tick();
-        refreshStats(life);
+    $('#g-day-night').on('click', function () {
+        wrap.forEach(function (item) {
+            item.grid.dayNight();
+        });
     });
 
-    $('#run').click(function () {
-        interval = setInterval(function () {
-            life.tick();
-            refreshStats(life);
-        }, 100);
+    $('#g-clear').on('click', function () {
+        wrap.forEach(function (item) {
+            refreshStats(item.life, true);
+            clearInterval(item.interval);
+            item.grid.clear();
+        });
     });
 
-    $('#pause').click(function () {
-        clearInterval(interval);
+    $('#g-next').on('click', function () {
+        wrap.forEach(function (item) {
+            item.life.tick();
+            refreshStats(item.life);
+        });
     });
 
-    $('#pattern').change(function () {
-        grid.import(pattern[$(this).val()]);
-        life = new Life(grid);
-        clearInterval(interval);
-        refreshStats(life, true);
+    $('#g-run').on('click', function () {
+        wrap.forEach(function (item) {
+            item.interval = setInterval(function () {
+                item.life.tick();
+                refreshStats(item.life);
+            }, 100);
+        });
     });
 
-    $('#add').on('click', function () {
-        $('#life-1').clone('').appendTo('#template');
+    $('#g-pause').on('click', function () {
+        wrap.forEach(function (item) {
+            clearInterval(item.interval);
+        });
     });
 
-    $('#day-night').on('click', function () {
-        grid.dayNight();
-    });
+    //Local controls
+    $('body')
+        .on('click', '.day-night', function () {
+            var idx = $(this).parents('.life').data('id');
+            wrap[idx].grid.dayNight();
+        })
+        .on('click', '.clear', function () {
+            var idx = $(this).parents('.life').data('id');
+            refreshStats(wrap[idx].life, true);
+            clearInterval(wrap[idx].interval);
+            wrap[idx].grid.clear();
+        })
+        .on('click', '.next', function () {
+            var idx = $(this).parents('.life').data('id');
+            wrap[idx].life.tick();
+            refreshStats(wrap[idx].life);
+        })
+        .on('click', '.run', function () {
+            var idx = $(this).parents('.life').data('id');
+
+            wrap[idx].interval = setInterval(function () {
+                wrap[idx].life.tick();
+                refreshStats(wrap[idx].life);
+            }, 100);
+        })
+        .on('click', '.pause', function () {
+            var idx = $(this).parents('.life').data('id');
+            clearInterval(wrap[idx].interval);
+        })
+        .on('change', '.pattern', function () {
+            var idx = $(this).parents('.life').data('id');
+
+            wrap[idx].grid.import(pattern[$(this).val()]);
+            wrap[idx].life = new Life(wrap[idx].grid);
+            clearInterval(wrap[idx].interval);
+            refreshStats(wrap[idx].life, true);
+        });
 });
