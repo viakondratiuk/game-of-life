@@ -75,14 +75,11 @@ var Grid = function (s, init, lifeId) {
 
 Grid.prototype = {
     clear: function () {
-        this.matrix = new Array(s.rows);
-        for (var y = 0; y < s.rows; y+=1) {
-            this.matrix[y] = new Array(s.columns);
-            for (var x = 0; x < s.columns; x+=1) {
-                var cell = new Cell(x, y, this.context);
-                this.matrix[y][x] = cell.setState(0);
-            }
-        }
+        this.matrix.map(function (row) {
+            return row.map(function (cell) {
+                cell.setState(s.DEAD);
+            });
+        });
     },
 	import: function (p) {
     	var startX = Math.floor(s.columns / 2) - Math.floor(p[0].length / 2),
