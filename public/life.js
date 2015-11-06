@@ -150,10 +150,10 @@ var Life = function (grid) {
 
 Life.prototype = {
     tick: function() {
-        this.nextGen();
+        this.calcNextGen();
         this.calcStats();
     },
-    nextGen: function () {
+    calcNextGen: function () {
         var self = this;
         this.grid.matrix = this.grid.matrix.map(function (row, y) {
             return row.map(function (cell, x) {
@@ -232,14 +232,18 @@ Cell.prototype = {
 
 // Init
 var init = function () {
-    var cloned = $('#template').clone();
-    cloned.removeClass('hidden').data('id', lifeId).attr('id', 'life-' + (lifeId));
-    cloned.appendTo('#workspace');
+    $('#template')
+        .clone()
+        .removeClass('hidden')
+        .data('id', lifeId)
+        .attr('id', 'life-' + (lifeId))
+        .appendTo('#workspace');
 
 	var grid = new Grid(s, Cell.dead, lifeId);
     // beacon, rpentomino, glider, pentadecathlon, acorn, gun
     grid.import(pattern.acorn);
     var life = new Life(grid);
+
     for(var key in pattern) {
     	$('#life-' + (lifeId) + ' .pattern').append(
             $('<option></option>').attr('state', key).text(key)
@@ -266,22 +270,6 @@ var refreshStats = function (life, clear) {
 
 $(document).ready(function() {
     init();
-
-    // Canvas events
-    $('body')
-        .on('click', 'canvas', function (event) {
-            var idx = $(this).parents('.life').data('id');
-            wrap[idx].grid.toggleCellState(event);
-        })
-        .on('mousemove mouseout', 'canvas', function () {
-            var idx = $(this).parents('.life').data('id');
-            wrap[idx].grid.mouseleaveCell(event);
-        })
-        .on('mousemove', 'canvas', function (event) {
-            var idx = $(this).parents('.life').data('id');
-            wrap[idx].grid.mouseenterCell(event);
-        });
-
 
     //Global controls
     $('#g-add').on('click', function () {
@@ -326,6 +314,18 @@ $(document).ready(function() {
 
     //Local controls
     $('body')
+        .on('click', 'canvas', function (event) {
+            var idx = $(this).parents('.life').data('id');
+            wrap[idx].grid.toggleCellState(event);
+        })
+        .on('mousemove mouseout', 'canvas', function () {
+            var idx = $(this).parents('.life').data('id');
+            wrap[idx].grid.mouseleaveCell(event);
+        })
+        .on('mousemove', 'canvas', function (event) {
+            var idx = $(this).parents('.life').data('id');
+            wrap[idx].grid.mouseenterCell(event);
+        })
         .on('click', '.day-night', function () {
             var idx = $(this).parents('.life').data('id');
             wrap[idx].grid.dayNight();
