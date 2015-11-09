@@ -55,7 +55,7 @@ var s = {
 };
 
 // Grid - draw canvas and init context
-var Grid = function (s, init, lifeId) {
+var Grid = function (s, state, lifeId) {
     this.lifeId = lifeId;
     this.canvas = $('<canvas/>').attr({
         width: s.grid_width,
@@ -68,13 +68,16 @@ var Grid = function (s, init, lifeId) {
     for (var y = 0; y < s.rows; y+=1) {
         this.matrix[y] = new Array(s.columns);
         for (var x = 0; x < s.columns; x+=1) {
-            var cell = new Cell(x, y, this.context);
-            this.matrix[y][x] = cell.setState(init());
+            this.matrix[y][x] = Grid.cells.create(x, y, this.context, state());
         }
     }
 };
 
-Grid.callbacks = {
+Grid.cells = {
+    create: function (x, y, context, state) {
+        var cell = new Cell(x, y, context);
+        return cell.setState(state);
+    },
     clear: function (cell) {
         cell.setState(s.DEAD);
     },
@@ -87,38 +90,40 @@ Grid.callbacks = {
 };
 
 Grid.prototype = {
-    manager: function(s, callback) {
-        s.posY.start = s.posY && s.posY.start || 0;
-        s.posY.stop = s.posY && s.posY.stop || 0;
-        s.posX.start = s.posX && s.posX.start || 0;
-        s.posX.stop = s.posX && s.posX.stop || 0;
-        
-        for (var y = s.posY.start; y < s.posY.stop; y+=1) {
-            for (var x = s.posX.start; x < s.posX.stop; x+=1) {
-                callback(this.matrix[y][x], s.state[y][x])
+    manager: function(callback, se) {
+        var s = se || {};
+        s.startY = s.startY || 0;
+        s.stopY = s.stopY || this.matrix.length;
+        s.startX = s.startX || 0;
+        s.stopX = s.stopX || this.matrix[0].length;
+
+        for (var y = s.startY; y < s.stopY; y+=1) {
+            for (var x = s.startX; x < s.stopX; x+=1) {
+                var cell = this.getCellByXY(x, y);
+                if (typeof s.states != 'undefined') {
+                    callback(cell, s.states[y - s.startY][x - s.startX])
+                } else {
+                    callback(cell)
+                }
             }
         }
     },
-	import: function (p) {
-    	var startX = Math.floor(s.columns / 2) - Math.floor(p[0].length / 2),
-    		startY = Math.floor(s.rows / 2) - Math.floor(p.length / 2);
+    import: function(p) {
+    	var se = {
+            startY: Math.floor(s.rows / 2) - Math.floor(p.length / 2),
+            startX: Math.floor(s.columns / 2) - Math.floor(p[0].length / 2),
+            states: p
+        };
+        se.stopY = se.startY + p.length;
+        se.stopX = se.startX + p[0].length;
 
-        for (var y = 0; y < p.length; y+=1) {
-            var row = p[y];
-            for (var x = 0; x < row.length; x+=1) {
-                this.setCellState(startX + x, startY + y, p[y][x]);
-            }
-        }
+        this.manager(Grid.cells.import, se);
     },
     getCellByXY: function (x, y) {
         return this.matrix[(s.rows + y) % s.rows][(s.columns + x) % s.columns];
     },
     getCellState: function (x, y) {
         return this.getCellByXY(x, y).getState();
-    },
-    setCellState: function (x, y, state) {
-        this.getCellByXY(x, y).setState(state);
-        return this;
     },
     getCell: function (event, y) {
         var x;
@@ -170,9 +175,9 @@ Life.prototype = {
             return row.map(function (cell, x) {
                 var n = self.countNeighbours(x, y),
                     state = (n == 4) ? cell.getState() : (n == 3) ? s.ALIVE : s.DEAD,
-                    nextCell = new Cell(x, y, self.grid.context);
+                    nextCell = Grid.cells.create(x, y, self.grid.context, state);
 
-                return nextCell.setState(state);
+                return nextCell;
             });
         });
     },
@@ -190,8 +195,8 @@ Life.prototype = {
         var self = this;
     	this.stats.generation += 1;
         this.stats.population = 0;
-        this.grid.matrix.map(function (row) {
-            row.map(function (cell) {
+        this.grid.matrix.forEach(function (row) {
+            row.forEach(function (cell) {
                 self.stats.population += cell.getState();
             });
         });
@@ -252,7 +257,7 @@ var init = function () {
 
 	var grid = new Grid(s, Cell.dead, lifeId);
     // beacon, rpentomino, glider, pentadecathlon, acorn, gun
-    grid.import(pattern.acorn);
+    grid.import(pattern.glider);
     var life = new Life(grid);
 
     for(var key in pattern) {
@@ -283,45 +288,41 @@ $(document).ready(function() {
     init();
 
     //Global controls
-    $('#g-add').on('click', function () {
-        init();
-    });
-
-    $('#g-day-night').on('click', function () {
-        wrap.forEach(function (item) {
-            item.grid.helper('dayNight');
-        });
-    });
-
-    $('#g-clear').on('click', function () {
-        wrap.forEach(function (item) {
-            refreshStats(item.life, true);
-            clearInterval(item.interval);
-            item.grid.helper('clear');
-        });
-    });
-
-    $('#g-next').on('click', function () {
-        wrap.forEach(function (item) {
-            item.life.tick();
-            refreshStats(item.life);
-        });
-    });
-
-    $('#g-run').on('click', function () {
-        wrap.forEach(function (item) {
-            item.interval = setInterval(function () {
+    $('body')
+        .on('click', '#g-add', function () {
+            init();
+        })
+        .on('click', '#g-day-night', function () {
+            wrap.forEach(function (item) {
+                item.grid.manager(Grid.cells.dayNight);
+            });
+        })
+        .on('click', '#g-clear', function () {
+            wrap.forEach(function (item) {
+                refreshStats(item.life, true);
+                clearInterval(item.interval);
+                item.grid.manager(Grid.cells.clear);
+            });
+        })
+        .on('click', '#g-next', function () {
+            wrap.forEach(function (item) {
                 item.life.tick();
                 refreshStats(item.life);
-            }, 100);
+            });
+        })
+        .on('click', '#g-run', function () {
+            wrap.forEach(function (item) {
+                item.interval = setInterval(function () {
+                    item.life.tick();
+                    refreshStats(item.life);
+                }, 100);
+            });
+        })
+        .on('click', '#g-pause', function () {
+            wrap.forEach(function (item) {
+                clearInterval(item.interval);
+            });
         });
-    });
-
-    $('#g-pause').on('click', function () {
-        wrap.forEach(function (item) {
-            clearInterval(item.interval);
-        });
-    });
 
     //Local controls
     $('body')
@@ -339,13 +340,13 @@ $(document).ready(function() {
         })
         .on('click', '.day-night', function () {
             var idx = $(this).parents('.life').data('id');
-            wrap[idx].grid.helper('dayNight');
+            wrap[idx].grid.manager(Grid.cells.dayNight);
         })
         .on('click', '.clear', function () {
             var idx = $(this).parents('.life').data('id');
             refreshStats(wrap[idx].life, true);
             clearInterval(wrap[idx].interval);
-            wrap[idx].grid.helper('clear');
+            wrap[idx].grid.manager(Grid.cells.clear);
         })
         .on('click', '.next', function () {
             var idx = $(this).parents('.life').data('id');

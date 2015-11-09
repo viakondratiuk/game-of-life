@@ -8,7 +8,7 @@ canvas {
     margin: 0 auto;
 }
 
-#g-controls, .gen, .canvas {
+#g-controls, .gen, .canvas, .buttons {
     margin-bottom: 5px;
     text-align: center;
 }
