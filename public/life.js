@@ -284,6 +284,52 @@ var refreshStats = function (life, clear) {
     }
 };
 
+var controls = (function () {
+    var dayNight = function (items) {
+        items.forEach(function (item) {
+            item.grid.manager(Grid.cells.dayNight);
+        })
+    };
+
+    var clear = function (items) {
+        items.forEach(function (item) {
+            refreshStats(item.life, true);
+            clearInterval(item.interval);
+            item.grid.manager(Grid.cells.clear);
+        });
+    };
+
+    var step = function (items) {
+        items.forEach(function (item) {
+            item.life.tick();
+            refreshStats(item.life);
+        });
+    };
+
+    var run = function (items) {
+        items.forEach(function (item) {
+            item.interval = setInterval(function () {
+                item.life.tick();
+                refreshStats(item.life);
+            }, 100);
+        });
+    };
+
+    var pause = function (items) {
+        items.forEach(function (item) {
+            clearInterval(item.interval);
+        });
+    };
+
+    return {
+        dayNight: dayNight,
+        clear: clear,
+        step: step,
+        run: run,
+        pause: pause
+    }
+})();
+
 $(document).ready(function() {
     init();
 
@@ -292,36 +338,35 @@ $(document).ready(function() {
         .on('click', '#g-add', function () {
             init();
         })
-        .on('click', '#g-day-night', function () {
-            wrap.forEach(function (item) {
-                item.grid.manager(Grid.cells.dayNight);
-            });
+        .on('click', '#g-day-night, .day-night', function () {
+            var idx = $(this).parents('.life').data('id'),
+                items = (idx) ? [wrap[idx]] : wrap;
+
+            controls.dayNight(items);
         })
-        .on('click', '#g-clear', function () {
-            wrap.forEach(function (item) {
-                refreshStats(item.life, true);
-                clearInterval(item.interval);
-                item.grid.manager(Grid.cells.clear);
-            });
+        .on('click', '#g-clear, .clear', function () {
+            var idx = $(this).parents('.life').data('id'),
+                items = (idx) ? [wrap[idx]] : wrap;
+
+            controls.clear(items);
         })
-        .on('click', '#g-next', function () {
-            wrap.forEach(function (item) {
-                item.life.tick();
-                refreshStats(item.life);
-            });
+        .on('click', '#g-next, .next', function () {
+            var idx = $(this).parents('.life').data('id'),
+                items = (idx) ? [wrap[idx]] : wrap;
+
+            controls.step(items);
         })
-        .on('click', '#g-run', function () {
-            wrap.forEach(function (item) {
-                item.interval = setInterval(function () {
-                    item.life.tick();
-                    refreshStats(item.life);
-                }, 100);
-            });
+        .on('click', '#g-run, .run', function () {
+            var idx = $(this).parents('.life').data('id'),
+                items = (idx) ? [wrap[idx]] : wrap;
+
+            controls.run(items);
         })
-        .on('click', '#g-pause', function () {
-            wrap.forEach(function (item) {
-                clearInterval(item.interval);
-            });
+        .on('click', '#g-pause, .pause', function () {
+            var idx = $(this).parents('.life').data('id'),
+                items = (idx) ? [wrap[idx]] : wrap;
+
+            controls.pause(items);
         });
 
     //Local controls
@@ -338,11 +383,7 @@ $(document).ready(function() {
             var idx = $(this).parents('.life').data('id');
             wrap[idx].grid.mouseenterCell(event);
         })
-        .on('click', '.day-night', function () {
-            var idx = $(this).parents('.life').data('id');
-            wrap[idx].grid.manager(Grid.cells.dayNight);
-        })
-        .on('click', '.clear', function () {
+        /*.on('click', '.clear', function () {
             var idx = $(this).parents('.life').data('id');
             refreshStats(wrap[idx].life, true);
             clearInterval(wrap[idx].interval);
@@ -364,7 +405,7 @@ $(document).ready(function() {
         .on('click', '.pause', function () {
             var idx = $(this).parents('.life').data('id');
             clearInterval(wrap[idx].interval);
-        })
+        })*/
         .on('change', '.pattern', function () {
             var idx = $(this).parents('.life').data('id');
 
