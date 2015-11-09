@@ -6,6 +6,7 @@
 * Rid of global settings
 * Several canvases
 * Controls
+* Add use strict
 
 * Hex grid
 * HashLife
@@ -73,13 +74,30 @@ var Grid = function (s, init, lifeId) {
     }
 };
 
+Grid.callbacks = {
+    clear: function (cell) {
+        cell.setState(s.DEAD);
+    },
+    dayNight: function (cell) {
+        cell.toggleState();
+    },
+    import: function (cell, state) {
+        cell.setState(state);
+    }
+};
+
 Grid.prototype = {
-    clear: function () {
-        this.matrix.map(function (row) {
-            return row.map(function (cell) {
-                cell.setState(s.DEAD);
-            });
-        });
+    manager: function(s, callback) {
+        s.posY.start = s.posY && s.posY.start || 0;
+        s.posY.stop = s.posY && s.posY.stop || 0;
+        s.posX.start = s.posX && s.posX.start || 0;
+        s.posX.stop = s.posX && s.posX.stop || 0;
+        
+        for (var y = s.posY.start; y < s.posY.stop; y+=1) {
+            for (var x = s.posX.start; x < s.posX.stop; x+=1) {
+                callback(this.matrix[y][x], s.state[y][x])
+            }
+        }
     },
 	import: function (p) {
     	var startX = Math.floor(s.columns / 2) - Math.floor(p[0].length / 2),
@@ -114,13 +132,6 @@ Grid.prototype = {
         }
 
         return this.getCellByXY(x, y);
-    },
-    dayNight: function() {
-        this.matrix.map(function (row) {
-            return row.map(function (cell) {
-                cell.toggleState();
-            });
-        });
     },
     toggleCellState: function (event) {
         this.getCell(event).toggleState();
@@ -278,7 +289,7 @@ $(document).ready(function() {
 
     $('#g-day-night').on('click', function () {
         wrap.forEach(function (item) {
-            item.grid.dayNight();
+            item.grid.helper('dayNight');
         });
     });
 
@@ -286,7 +297,7 @@ $(document).ready(function() {
         wrap.forEach(function (item) {
             refreshStats(item.life, true);
             clearInterval(item.interval);
-            item.grid.clear();
+            item.grid.helper('clear');
         });
     });
 
@@ -328,13 +339,13 @@ $(document).ready(function() {
         })
         .on('click', '.day-night', function () {
             var idx = $(this).parents('.life').data('id');
-            wrap[idx].grid.dayNight();
+            wrap[idx].grid.helper('dayNight');
         })
         .on('click', '.clear', function () {
             var idx = $(this).parents('.life').data('id');
             refreshStats(wrap[idx].life, true);
             clearInterval(wrap[idx].interval);
-            wrap[idx].grid.clear();
+            wrap[idx].grid.helper('clear');
         })
         .on('click', '.next', function () {
             var idx = $(this).parents('.life').data('id');
